@@ -156,13 +156,13 @@
         const messageBox = document.getElementById('messageBox');
         const messageTitle = document.getElementById('messageTitle');
         const messageContent = document.getElementById('messageContent');
-        const imageUrlInput = document.getElementById('imageUrl'); // Nuevo
-        const loadImageButton = document.getElementById('loadImageButton'); // Nuevo
+        const imageUrlInput = document.getElementById('imageUrl');
+        const loadImageButton = document.getElementById('loadImageButton');
         const imagePreview = document.getElementById('imagePreview');
         const previewArea = document.getElementById('previewArea');
         const placeholderText = document.getElementById('placeholderText');
         const dimensionText = document.getElementById('dimensionText');
-        const imageError = document.getElementById('imageError'); // Nuevo
+        const imageError = document.getElementById('imageError');
 
 
         // Función para cargar la imagen desde la URL
@@ -212,20 +212,17 @@
             const MAX_WIDTH_VISUAL = 400; 
             const MAX_HEIGHT_VISUAL = 300; 
 
-            let visualWidth = widthPixels;
-            let visualHeight = heightPixels;
-
-            // Escalar para asegurar que el ancho no exceda el límite
-            if (visualWidth > MAX_WIDTH_VISUAL) {
-                visualHeight = visualHeight * (MAX_WIDTH_VISUAL / visualWidth);
-                visualWidth = MAX_WIDTH_VISUAL;
-            }
+            // 1. Calcular las proporciones de escalado necesarias para ambos límites
+            const widthRatio = MAX_WIDTH_VISUAL / widthPixels;
+            const heightRatio = MAX_HEIGHT_VISUAL / heightPixels;
             
-            // Escalar de nuevo si la altura excede el límite (después del ajuste de ancho)
-            if (visualHeight > MAX_HEIGHT_VISUAL) {
-                visualWidth = visualWidth * (MAX_HEIGHT_VISUAL / visualWidth);
-                visualHeight = MAX_HEIGHT_VISUAL;
-            }
+            // 2. Usar la proporción más pequeña (Math.min) para asegurar que la imagen
+            //    se ajuste completamente dentro de los límites sin desbordarse.
+            const finalRatio = Math.min(widthRatio, heightRatio);
+
+            // 3. Aplicar la proporción final a las dimensiones en píxeles
+            const visualWidth = widthPixels * finalRatio;
+            const visualHeight = heightPixels * finalRatio;
             
             // Aplicar las dimensiones escaladas visualmente. 
             // La clase object-fill se encarga de estirar la imagen para mostrar la deformación.
