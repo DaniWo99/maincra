@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generador de Comando /size para Minecraft</title>
+    <!-- Carga de Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuración de Tailwind para usar la fuente Inter -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Estilos personalizados para la fuente Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+            <span class="text-indigo-600">🖼️ Generador de</span> Comando `/size`
+        </h1>
+        <p class="text-gray-500 mb-6">
+            Calcula las dimensiones en píxeles para tu mod de imágenes en Minecraft (1 bloque = 128x128 píxeles).
+        </p>
+        
+        <!-- Bloque de Entrada de URL de Imagen -->
+        <div class="mb-6">
+            <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">
+                URL de la Imagen para previsualizar (Opcional)
+            </label>
+            <div class="flex space-x-2">
+                <input type="text" id="imageUrl" placeholder="Pega aquí la URL de la imagen (ej: http://ejemplo.com/img.png)"
+                       class="flex-grow mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-sm transition duration-150">
+                <button id="loadImageButton" 
+                        class="mt-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-lg shadow-sm transition duration-150 whitespace-nowrap active:bg-gray-400">
+                    Cargar
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Bloque de Entrada: Ancho -->
+            <div>
+                <label for="widthBlocks" class="block text-sm font-medium text-gray-700 mb-1">
+                    Ancho Deseado (en bloques de item frames)
+                </label>
+                <input type="number" id="widthBlocks" min="1" value="1" placeholder="Ej: 4"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg transition duration-150">
+            </div>
+
+            <!-- Bloque de Entrada: Alto -->
+            <div>
+                <label for="heightBlocks" class="block text-sm font-medium text-gray-700 mb-1">
+                    Alto Deseado (en bloques de item frames)
+                </label>
+                <input type="number" id="heightBlocks" min="1" value="1" placeholder="Ej: 4"
+                       class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-lg transition duration-150">
+            </div>
+            
+            <!-- Botón de Cálculo -->
+            <button id="calculateButton" 
+                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg shadow-md transition duration-200 transform hover:scale-[1.01] active:scale-[0.99] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Generar Comando y Previsualizar
+            </button>
+        </div>
+        
+        <!-- Área de Previsualización -->
+        <div id="previewArea" class="mt-8 pt-6 border-t border-gray-200 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Previsualización del Mapa Redimensionado</h2>
+            <div class="relative flex items-center justify-center p-2 border-2 border-dashed border-indigo-300 rounded-lg bg-indigo-50 overflow-hidden min-h-[150px]">
+                
+                <!-- La imagen se colocará y redimensionará aquí. object-fill fuerza la imagen a la nueva forma, mostrando la deformación. -->
+                <img id="imagePreview" 
+                     src="" 
+                     alt="Previsualización de imagen" 
+                     class="max-w-full max-h-[300px] object-fill transition-all duration-300 transform shadow-xl rounded-md border-4 border-indigo-600"
+                     style="width: 128px; height: 128px; display: none;"
+                     onerror="document.getElementById('imageError').classList.remove('hidden');">
+                
+                <div id="placeholderText" class="absolute text-gray-500 text-center p-4">
+                    Pega una URL y cárgala para ver cómo se ajustará a las dimensiones del mapa.
+                </div>
+                 <div id="imageError" class="absolute hidden text-red-600 bg-white p-4 rounded-lg shadow-lg text-center font-medium border border-red-300">
+                    ⚠️ Error al cargar la imagen. Revisa la URL (puede que necesite ser CORS-friendly).
+                </div>
+            </div>
+            <p id="dimensionText" class="text-center text-sm text-gray-700 mt-2 font-semibold">
+                Dimensiones del Mapa: 128px x 128px (1x1 bloques)
+            </p>
+        </div>
+
+        <!-- Área de Resultado -->
+        <div id="resultContainer" class="mt-8 pt-6 border-t border-gray-200 hidden">
+            <h2 class="text-xl font-semibold text-gray-800 mb-3">Comando Generado</h2>
+
+            <!-- Visualización del Comando -->
+            <div class="flex items-stretch space-x-2">
+                <input type="text" id="commandOutput" readonly
+                       class="flex-grow bg-gray-50 border border-gray-300 text-gray-900 text-base rounded-lg px-4 py-3 font-mono cursor-text select-all overflow-x-auto">
+                
+                <!-- Botón de Copiar -->
+                <button id="copyButton" 
+                        class="bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg px-4 py-3 shadow-md transition duration-200 whitespace-nowrap active:bg-green-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" />
+                        <path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" />
+                    </svg>
+                    Copiar
+                </button>
+            </div>
+            
+            <!-- Mensaje de confirmación de copia -->
+            <p id="copyMessage" class="text-sm text-green-600 mt-2 transition duration-300 opacity-0 h-0 overflow-hidden">
+                Comando copiado al portapapeles. ¡Listo para pegar en Minecraft!
+            </p>
+        </div>
+        
+        <!-- Marca de Agua -->
+        <p class="text-center text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">
+            Creado por DaniWo1
+        </p>
+
+        <!-- Área de Mensajes (Modal) -->
+        <div id="messageBox" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                <h3 id="messageTitle" class="text-lg font-bold mb-3 text-red-600">Error de Entrada</h3>
+                <p id="messageContent" class="text-gray-700 mb-4">Por favor, asegúrate de que tanto el ancho como el alto sean números enteros positivos mayores a cero.</p>
+                <button onclick="closeMessageBox()" class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 rounded-lg transition duration-150">
+                    Entendido
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Constante que define el tamaño en píxeles de un solo bloque (item frame)
+        const PIXELS_PER_BLOCK = 128;
+        
+        // Elementos de la interfaz
+        const widthBlocksInput = document.getElementById('widthBlocks');
+        const heightBlocksInput = document.getElementById('heightBlocks');
+        const commandOutput = document.getElementById('commandOutput');
+        const resultContainer = document.getElementById('resultContainer');
+        const copyMessage = document.getElementById('copyMessage');
+        const messageBox = document.getElementById('messageBox');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageContent = document.getElementById('messageContent');
+        const imageUrlInput = document.getElementById('imageUrl'); // Nuevo
+        const loadImageButton = document.getElementById('loadImageButton'); // Nuevo
+        const imagePreview = document.getElementById('imagePreview');
+        const previewArea = document.getElementById('previewArea');
+        const placeholderText = document.getElementById('placeholderText');
+        const dimensionText = document.getElementById('dimensionText');
+        const imageError = document.getElementById('imageError'); // Nuevo
+
+
+        // Función para cargar la imagen desde la URL
+        function loadImageFromUrl() {
+            const url = imageUrlInput.value.trim();
+            imageError.classList.add('hidden'); // Ocultar errores previos
+            
+            if (url) {
+                // Configurar la fuente de la imagen
+                imagePreview.src = url; 
+                imagePreview.style.display = 'block';
+                placeholderText.classList.add('hidden');
+                previewArea.classList.remove('hidden');
+                
+                // Forzar el recálculo y la actualización visual
+                generateCommand(); 
+            } else {
+                // Si la URL está vacía, mostrar el placeholder
+                imagePreview.src = '';
+                imagePreview.style.display = 'none';
+                placeholderText.classList.remove('hidden');
+            }
+        }
+        
+        // Función principal para calcular y mostrar el comando
+        function generateCommand() {
+            // Obtener los valores de los inputs y convertirlos a enteros
+            const widthBlocks = parseInt(widthBlocksInput.value, 10);
+            const heightBlocks = parseInt(heightBlocksInput.value, 10);
+
+            // Validar que las entradas sean números válidos y positivos
+            if (isNaN(widthBlocks) || isNaN(heightBlocks) || widthBlocks <= 0 || heightBlocks <= 0) {
+                openMessageBox("Error de Entrada", "Por favor, asegúrate de que el Ancho y el Alto sean números enteros positivos (mayor a 0).");
+                return;
+            }
+
+            // Calcular las dimensiones finales en píxeles
+            const widthPixels = widthBlocks * PIXELS_PER_BLOCK;
+            const heightPixels = heightBlocks * PIXELS_PER_BLOCK;
+
+            // Construir el comando final en el formato: /size <anchura> <altura>
+            const command = `/size ${widthPixels} ${heightPixels}`;
+
+            // --- Actualizar Previsualización (Ajuste visual) ---
+            
+            // Constantes para limitar el tamaño visual del preview en pantalla
+            const MAX_WIDTH_VISUAL = 400; 
+            const MAX_HEIGHT_VISUAL = 300; 
+
+            let visualWidth = widthPixels;
+            let visualHeight = heightPixels;
+
+            // Escalar para asegurar que el ancho no exceda el límite
+            if (visualWidth > MAX_WIDTH_VISUAL) {
+                visualHeight = visualHeight * (MAX_WIDTH_VISUAL / visualWidth);
+                visualWidth = MAX_WIDTH_VISUAL;
+            }
+            
+            // Escalar de nuevo si la altura excede el límite (después del ajuste de ancho)
+            if (visualHeight > MAX_HEIGHT_VISUAL) {
+                visualWidth = visualWidth * (MAX_HEIGHT_VISUAL / visualWidth);
+                visualHeight = MAX_HEIGHT_VISUAL;
+            }
+            
+            // Aplicar las dimensiones escaladas visualmente. 
+            // La clase object-fill se encarga de estirar la imagen para mostrar la deformación.
+            imagePreview.style.width = `${visualWidth.toFixed(0)}px`;
+            imagePreview.style.height = `${visualHeight.toFixed(0)}px`;
+            
+            dimensionText.textContent = `Dimensiones del Mapa: ${widthPixels}px x ${heightPixels}px (${widthBlocks}x${heightBlocks} bloques)`;
+            
+            // Si hay una URL en el campo de input, se asume que se quiere ver el preview
+            if (imageUrlInput.value.trim() !== '' || imagePreview.src) {
+                 previewArea.classList.remove('hidden');
+            } else {
+                 previewArea.classList.add('hidden');
+            }
+
+
+            // --- Actualizar Comando ---
+            commandOutput.value = command;
+            resultContainer.classList.remove('hidden');
+
+            // Resetear el mensaje de copia
+            copyMessage.classList.add('opacity-0', 'h-0');
+            copyMessage.classList.remove('h-auto');
+        }
+
+        // Función para copiar el comando al portapapeles
+        function copyCommand() {
+            // Usar execCommand('copy') como fallback para entornos sandboxed
+            try {
+                commandOutput.select();
+                commandOutput.setSelectionRange(0, 99999); // Para móviles
+                document.execCommand('copy');
+
+                // Mostrar mensaje de éxito
+                copyMessage.classList.remove('opacity-0', 'h-0');
+                copyMessage.classList.add('h-auto');
+                
+                // Ocultar mensaje después de 3 segundos
+                setTimeout(() => {
+                    copyMessage.classList.add('opacity-0', 'h-0');
+                    copyMessage.classList.remove('h-auto');
+                }, 3000);
+
+            } catch (err) {
+                // Si la copia falla, mostrar un mensaje al usuario
+                openMessageBox("Error al Copiar", "El navegador no permitió la copia automática. Por favor, selecciona y copia el texto manualmente.");
+            }
+        }
+        
+        // --- Funcionalidad del Modal de Mensaje ---
+        function openMessageBox(title, content) {
+            messageTitle.textContent = title;
+            messageContent.textContent = content;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add('flex');
+        }
+
+        function closeMessageBox() {
+            messageBox.classList.add('hidden');
+            messageBox.classList.remove('flex');
+        }
+
+        // --- Asignación de Event Listeners ---
+        document.getElementById('calculateButton').addEventListener('click', generateCommand);
+        document.getElementById('copyButton').addEventListener('click', copyCommand);
+        loadImageButton.addEventListener('click', loadImageFromUrl); // Cargar imagen al hacer clic en el botón
+        
+        // Opcional: Permitir generar/cargar al presionar Enter en los inputs
+        document.getElementById('widthBlocks').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') generateCommand();
+        });
+        document.getElementById('heightBlocks').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') generateCommand();
+        });
+        document.getElementById('imageUrl').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') loadImageFromUrl();
+        });
+        
+        // Asegurar que al cargar la página se ejecute el cálculo inicial
+        window.onload = generateCommand;
+
+    </script>
+</body>
+</html>
