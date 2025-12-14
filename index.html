@@ -14,6 +14,10 @@
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     },
+                    colors: {
+                        // Se define un color púrpura custom para mayor impacto
+                        'purple-custom': '#7f5cfd', 
+                    }
                 }
             }
         }
@@ -21,13 +25,31 @@
     <style>
         /* Estilos personalizados para la fuente Inter */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        /* Keyframes para una animación de pulso sutil */
+        @keyframes pulse-purple {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.9;
+                transform: scale(1.02);
+            }
+        }
+        
+        /* Clase para aplicar la animación */
+        .animated-name {
+            display: inline-block;
+            animation: pulse-purple 2s infinite ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center font-sans p-4">
 
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg">
         <h1 class="text-3xl font-bold text-gray-800 mb-2">
-            <span class="text-indigo-600">🖼️ Generador de</span> Comando `/size`
+            <span class="text-indigo-600">🖼️ Generador de</span> Comando Image2Map
         </h1>
         <p class="text-gray-500 mb-6">
             Calcula las dimensiones en píxeles para tu mod de imágenes en Minecraft (1 bloque = 128x128 píxeles).
@@ -36,7 +58,7 @@
         <!-- Bloque de Entrada de URL de Imagen -->
         <div class="mb-6">
             <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-1">
-                URL de la Imagen para previsualizar (Opcional)
+                URL de la Imagen (Obligatorio para el comando)
             </label>
             <div class="flex space-x-2">
                 <input type="text" id="imageUrl" placeholder="Pega aquí la URL de la imagen (ej: http://ejemplo.com/img.png)"
@@ -123,11 +145,17 @@
             <p id="copyMessage" class="text-sm text-green-600 mt-2 transition duration-300 opacity-0 h-0 overflow-hidden">
                 Comando copiado al portapapeles. ¡Listo para pegar en Minecraft!
             </p>
+            <p class="text-xs text-gray-500 mt-2">
+                * Este comando usa la opción `none` para la conversión de color (sin *dither*).
+            </p>
         </div>
         
         <!-- Marca de Agua -->
         <p class="text-center text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">
-            Creado por DaniWo1
+            Creado por 
+            <span class="text-purple-custom font-semibold animated-name transition duration-300 hover:text-purple-700">
+                DaniWo1
+            </span>
         </p>
 
         <!-- Área de Mensajes (Modal) -->
@@ -189,22 +217,27 @@
         
         // Función principal para calcular y mostrar el comando
         function generateCommand() {
+            const url = imageUrlInput.value.trim();
             // Obtener los valores de los inputs y convertirlos a enteros
             const widthBlocks = parseInt(widthBlocksInput.value, 10);
             const heightBlocks = parseInt(heightBlocksInput.value, 10);
 
             // Validar que las entradas sean números válidos y positivos
             if (isNaN(widthBlocks) || isNaN(heightBlocks) || widthBlocks <= 0 || heightBlocks <= 0) {
+                // Mostrar mensaje de error si las dimensiones son inválidas
                 openMessageBox("Error de Entrada", "Por favor, asegúrate de que el Ancho y el Alto sean números enteros positivos (mayor a 0).");
                 return;
             }
+            
+            // Advertencia por URL faltante ya no se muestra al inicio.
+            // Si la URL está vacía, el comando simplemente incluirá un espacio vacío al final.
 
             // Calcular las dimensiones finales en píxeles
             const widthPixels = widthBlocks * PIXELS_PER_BLOCK;
             const heightPixels = heightBlocks * PIXELS_PER_BLOCK;
 
-            // Construir el comando final en el formato: /size <anchura> <altura>
-            const command = `/size ${widthPixels} ${heightPixels}`;
+            // Construir el comando final en el formato: /image2map create <anchura> <altura> none <URL>
+            const command = `/image2map create ${widthPixels} ${heightPixels} none ${url}`;
 
             // --- Actualizar Previsualización (Ajuste visual) ---
             
@@ -232,9 +265,10 @@
             dimensionText.textContent = `Dimensiones del Mapa: ${widthPixels}px x ${heightPixels}px (${widthBlocks}x${heightBlocks} bloques)`;
             
             // Si hay una URL en el campo de input, se asume que se quiere ver el preview
-            if (imageUrlInput.value.trim() !== '' || imagePreview.src) {
+            if (url !== '') {
                  previewArea.classList.remove('hidden');
             } else {
+                 // Si no hay URL, el comando se genera, pero la previsualización se mantiene oculta
                  previewArea.classList.add('hidden');
             }
 
@@ -302,6 +336,7 @@
         });
         
         // Asegurar que al cargar la página se ejecute el cálculo inicial
+        // Ahora solo llama a generateCommand, que ya no muestra el modal al inicio.
         window.onload = generateCommand;
 
     </script>
